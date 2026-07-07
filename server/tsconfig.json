@@ -1,0 +1,9 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "rootDir": "src",
+        "outDir": "dist",
+        "module": "esnext"
+    },
+    "include": ["src"]
+}
