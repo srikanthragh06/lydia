@@ -3,6 +3,7 @@ import { setCookie } from "hono/cookie";
 import { zValidator } from "@hono/zod-validator";
 import { googleSignInSchema } from "../schemas/auth";
 import { signInWithGoogle } from "../services/authService";
+import { requireAuth } from "../middlewares/auth";
 
 // Router for authentication-related endpoints, mounted at /auth in the main app.
 export const authRouter = new Hono();
@@ -32,3 +33,9 @@ authRouter.post(
         }
     },
 );
+
+// Returns the currently signed-in user, verified via the auth cookie.
+authRouter.get("/me", requireAuth, (c) => {
+    const user = c.get("user");
+    return c.json({ user });
+});
