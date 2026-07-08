@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { migrate } from "./database/migrate";
+import { authRouter } from "./routers/auth";
 
 (async () => {
     // configure server
@@ -9,6 +10,9 @@ import { migrate } from "./database/migrate";
     app.get("/health", (c) => {
         return c.json({ message: "ok" });
     });
+
+    // mount auth routes
+    app.route("/auth", authRouter);
 
     // db migration
     const migrationSuccess = await migrate();
