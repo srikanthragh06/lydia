@@ -16,21 +16,16 @@ authRouter.post(
     async (c) => {
         const { code } = c.req.valid("json");
 
-        try {
-            const { user, token } = await signInWithGoogle(code);
+        const { user, token } = await signInWithGoogle(code);
 
-            setCookie(c, "auth", token, {
-                httpOnly: true,
-                path: "/",
-                sameSite: "Strict",
-                secure: process.env.NODE_ENV === "production",
-            });
+        setCookie(c, "auth", token, {
+            httpOnly: true,
+            path: "/",
+            sameSite: "Strict",
+            secure: process.env.NODE_ENV === "production",
+        });
 
-            return c.json({ user });
-        } catch (err) {
-            console.error(err);
-            return c.json({ error: (err as Error).message }, 400);
-        }
+        return c.json({ user });
     },
 );
 

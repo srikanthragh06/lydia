@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { migrate } from "./database/migrate";
 import { authRouter } from "./routers/auth";
+import { conversationsRouter } from "./routers/conversations";
 
 (async () => {
     // configure server
@@ -23,6 +24,15 @@ import { authRouter } from "./routers/auth";
 
     // mount auth routes
     app.route("/auth", authRouter);
+
+    // mount conversation routes
+    app.route("/conversations", conversationsRouter);
+
+    // catch-all for errors thrown/uncaught in any route handler
+    app.onError((err, c) => {
+        console.error(err);
+        return c.json({ error: "Internal server error" }, 500);
+    });
 
     // db migration
     const migrationSuccess = await migrate();
