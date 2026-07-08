@@ -1,9 +1,34 @@
 import { Hono } from "hono";
+import { setCookie } from "hono/cookie";
+import { zValidator } from "@hono/zod-validator";
+import { googleSignInSchema } from "../schemas/auth";
+import { signInWithGoogle } from "../services/authService";
 
 // Router for authentication-related endpoints, mounted at /auth in the main app.
 export const authRouter = new Hono();
 
-// Placeholder for exchanging a Google OAuth authorization code for a session; token exchange is not yet implemented.
-authRouter.post("/google", (c) => {
-    return c.json({});
-});
+// Exchanges a Google OAuth authorization code for a session via authService, then sets the
+// resulting token as an httpOnly auth cookie.
+authRouter.post(
+    "/google",
+    zValidator("json", googleSignInSchema),
+    async (c) => {
+        const { code } = c.req.valid("json");
+
+        try {
+            const { user, token } = await signInWithGoogle(code);
+
+            setCookie(c, "auth", token, {
+                httpOnly: true,
+                path: "/",
+                sameSite: "Strict",
+                secure: process.env.NODE_ENV === "production",
+            });
+
+            return c.json({ user });
+        } catch (err) {
+            console.error(err);
+            return c.json({ error: (err as Error).message }, 400);
+        }
+    },
+);
