@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { setCookie } from "hono/cookie";
+import { setCookie, deleteCookie } from "hono/cookie";
 import { zValidator } from "@hono/zod-validator";
 import { googleSignInSchema } from "shared";
 import { signInWithGoogle } from "../services/authService";
@@ -33,4 +33,10 @@ authRouter.post(
 authRouter.get("/me", requireAuth, (c) => {
     const user = c.get("user");
     return c.json({ user });
+});
+
+// Logs the user out by clearing the auth cookie.
+authRouter.post("/logout", (c) => {
+    deleteCookie(c, "auth", { path: "/" });
+    return c.json({ success: true });
 });
