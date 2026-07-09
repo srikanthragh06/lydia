@@ -50,7 +50,8 @@ const Sidebar = ({ user }: { user: User }) => {
             {/* starts a new, untitled conversation and selects it */}
             <button
                 onClick={handleNewChat}
-                className="m-3 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-left cursor-pointer"
+                className="m-3 px-3 py-2 rounded-lg  
+                hover:bg-white/10 transition text-left cursor-pointer"
             >
                 New Chat +
             </button>
