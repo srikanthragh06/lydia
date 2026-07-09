@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
 import { zValidator } from "@hono/zod-validator";
-import { googleSignInSchema } from "../schemas/auth";
+import { googleSignInSchema } from "shared";
 import { signInWithGoogle } from "../services/authService";
 import { requireAuth } from "../middlewares/auth";
 

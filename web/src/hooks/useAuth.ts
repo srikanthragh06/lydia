@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import type { User } from "shared";
 import { api } from "../lib/axios";
 
 // Verifies the current session by calling /auth/me on mount, redirecting to /auth if it fails.
@@ -8,13 +9,7 @@ export function useAuth(requiresAuth: boolean) {
         "noAuthRequired" | "loading" | "success" | "failed"
     >("noAuthRequired"); // stage of the session check; stays "noAuthRequired" if requiresAuth is false
 
-    const [user, setUser] = useState<{
-        id: number;
-        googleId: string;
-        emailId: string;
-        name: string | null;
-        picture: string | null;
-    } | null>(null); // signed-in user once the auth check succeeds; null while loading or unauthenticated
+    const [user, setUser] = useState<User | null>(null); // signed-in user once the auth check succeeds; null while loading or unauthenticated
 
     const navigate = useNavigate();
 
