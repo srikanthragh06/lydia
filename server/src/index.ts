@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import { migrate } from "./database/migrate";
 import { authRouter } from "./routers/auth";
 import { conversationsRouter } from "./routers/conversations";
+import { messageRouter } from "./routers/message";
 
 (async () => {
     // configure server
@@ -27,6 +28,9 @@ import { conversationsRouter } from "./routers/conversations";
 
     // mount conversation routes
     app.route("/conversations", conversationsRouter);
+
+    // mount message routes
+    app.route("/message", messageRouter);
 
     // catch-all for errors thrown/uncaught in any route handler
     app.onError((err, c) => {

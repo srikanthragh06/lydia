@@ -16,3 +16,8 @@ export interface Conversation {
     createdAt: string;
     updatedAt: string;
 }
+
+// Response shape for POST /message.
+export interface SendMessageResponse {
+    content: string;
+}
