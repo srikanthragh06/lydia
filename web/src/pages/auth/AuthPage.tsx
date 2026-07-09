@@ -1,4 +1,5 @@
 import { FcGoogle } from "react-icons/fc";
+import Page from "../../components/Page";
 
 const AuthPage = () => {
     // Redirects to Google's OAuth consent screen, first generating and storing a random state
@@ -32,10 +33,7 @@ const AuthPage = () => {
     };
 
     return (
-        <div
-            className="w-full h-full text-white 
-        flex flex-col items-center justify-center"
-        >
+        <Page className="items-center justify-center " requiresAuth={false}>
             <div className=" flex flex-col items-center space-y-4">
                 <div>Please sign in to continue</div>
                 <button
@@ -48,7 +46,7 @@ const AuthPage = () => {
                     Sign in with Google
                 </button>
             </div>
-        </div>
+        </Page>
     );
 };
 

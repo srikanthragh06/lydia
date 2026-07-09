@@ -2,10 +2,15 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import AuthPage from "./pages/auth/AuthPage";
 import NotFoundPage from "./pages/notFound/NotFoundPage";
 import AuthCallbackPage from "./pages/authCallback/AuthCallbackPage";
+import ChatPage from "./pages/chat/ChatPage";
 
 // Root component: defines the client-side route table and renders the matched page.
 function App() {
     const router = createBrowserRouter([
+        {
+            path: "/",
+            element: <ChatPage />,
+        },
         {
             path: "/auth",
             element: <AuthPage />,

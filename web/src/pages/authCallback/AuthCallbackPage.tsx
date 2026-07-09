@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/axios";
+import Page from "../../components/Page";
 
 const AuthCallbackPage = () => {
-    const [status, setStatus] = useState<
-        "signing-in" | "failed" | "success"
-    >("signing-in"); // current stage of the sign-in exchange, drives the message shown to the user
+    const [status, setStatus] = useState<"signing-in" | "failed" | "success">(
+        "signing-in",
+    ); // current stage of the sign-in exchange, drives the message shown to the user
 
     // Verifies the OAuth state Google redirected back with against the one stored before
     // redirecting, then exchanges the authorization code with the backend to complete sign-in.
@@ -52,14 +53,11 @@ const AuthCallbackPage = () => {
     }, [status]);
 
     return (
-        <div
-            className="w-full h-full text-white
-        flex flex-col items-center justify-center"
-        >
+        <Page className="items-center justify-center" requiresAuth={false}>
             {status === "signing-in" && "Signing in..."}
             {status === "failed" && "Sign in failed :("}
             {status === "success" && "Signed in successfully :)"}
-        </div>
+        </Page>
     );
 };
 
