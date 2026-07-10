@@ -60,19 +60,22 @@ const Sidebar = ({ user }: { user: User }) => {
     // Saves the in-progress inline rename, or does nothing if the trimmed title is empty (leaves
     // the conversation's title unchanged rather than allowing an empty rename).
     const handleRenameSubmit = async (conversationId: number) => {
-        const title = editingTitle.trim();
-        setEditingConversationId(null);
-        if (!title) return;
+        try {
+            const title = editingTitle.trim();
+            if (!title) return;
 
-        const res = await api.patch(`/conversations/${conversationId}`, {
-            title,
-        });
-        const updated: Conversation = res.data.conversation;
-        setConversations((prev) =>
-            prev.map((conversation) =>
-                conversation.id === conversationId ? updated : conversation,
-            ),
-        );
+            const res = await api.patch(`/conversations/${conversationId}`, {
+                title,
+            });
+            const updated: Conversation = res.data.conversation;
+            setConversations((prev) =>
+                prev.map((conversation) =>
+                    conversation.id === conversationId ? updated : conversation,
+                ),
+            );
+        } finally {
+            setEditingConversationId(null);
+        }
     };
 
     // Clears the auth cookie and sends the user back to the sign-in page.
@@ -132,16 +135,13 @@ const Sidebar = ({ user }: { user: User }) => {
                                             value={editingTitle}
                                             maxLength={64}
                                             onChange={(e) =>
-                                                setEditingTitle(
-                                                    e.target.value,
-                                                )
+                                                setEditingTitle(e.target.value)
                                             }
                                             onBlur={() => {
                                                 if (
                                                     cancelingRenameRef.current
                                                 ) {
-                                                    cancelingRenameRef.current =
-                                                        false;
+                                                    cancelingRenameRef.current = false;
                                                     return;
                                                 }
                                                 handleRenameSubmit(
@@ -155,11 +155,8 @@ const Sidebar = ({ user }: { user: User }) => {
                                                     // unmounting this focused input would blur
                                                     // it a second time and double-submit
                                                     e.currentTarget.blur();
-                                                } else if (
-                                                    e.key === "Escape"
-                                                ) {
-                                                    cancelingRenameRef.current =
-                                                        true;
+                                                } else if (e.key === "Escape") {
+                                                    cancelingRenameRef.current = true;
                                                     setEditingConversationId(
                                                         null,
                                                     );
