@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { streamSSE } from "hono/streaming";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { sendMessageSchema } from "shared";
@@ -26,7 +27,9 @@ conversationsRouter.get("/", requireAuth, async (c) => {
     return c.json({ conversations });
 });
 
-// Sends the user's prompt in the given conversation and returns the assistant's reply.
+// Streams the assistant's reply to the user's prompt in the given conversation, as
+// Server-Sent Events: a "chunk" event per piece of text as it arrives, or a single "error"
+// event with a generic message if the model call fails partway through.
 conversationsRouter.post(
     "/:conversationId/messages",
     requireAuth,
@@ -40,7 +43,26 @@ conversationsRouter.post(
         const { conversationId } = c.req.valid("param");
         const { prompt } = c.req.valid("json");
 
-        const content = await sendMessage(user.id, conversationId, prompt);
-        return c.json({ content });
+        return streamSSE(c, async (stream) => {
+            try {
+                await sendMessage(
+                    user.id,
+                    conversationId,
+                    prompt,
+                    async (chunk) => {
+                        await stream.writeSSE({ event: "chunk", data: chunk });
+                    },
+                );
+            } catch (err) {
+                // the stream has already started (200 already sent, so we can't fall back to
+                // an HTTP error status) — log the real error, but only send a generic message
+                // to the client rather than leaking internal error details
+                console.error(err);
+                await stream.writeSSE({
+                    event: "error",
+                    data: "Something went wrong",
+                });
+            }
+        });
     },
 );

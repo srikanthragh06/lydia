@@ -1,5 +1,6 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import { generateText } from "ai";
+import { streamText } from "ai";
+import type { ChatMessage } from "shared";
 import { db } from "../database/postgres";
 import { getConversationForUser } from "./conversationService";
 
@@ -14,12 +15,13 @@ async function getMessagesForConversation(conversationId: number) {
 }
 
 // Sends a user's prompt in the context of an existing conversation: verifies the conversation
-// belongs to the user, sends the full history plus the new prompt to the model, then persists
-// both the user and assistant messages together and returns the assistant's reply.
+// belongs to the user, persists the prompt, streams the model's reply chunk by chunk via
+// `onChunk`, then persists the assistant's full reply once streaming completes.
 export async function sendMessage(
     userId: number,
     conversationId: number,
     prompt: string,
+    onChunk: (chunk: string) => Promise<void>,
 ) {
     // make sure this conversation actually belongs to the requesting user
     const conversation = await getConversationForUser(conversationId, userId);
@@ -27,27 +29,58 @@ export async function sendMessage(
         throw new Error("Conversation not found");
     }
 
-    // build the full message history plus the new user prompt, and get the model's reply
+    // fetch the existing history before adding the new prompt, so the model sees it as context
     const history = await getMessagesForConversation(conversationId);
-    const { text: content } = await generateText({
-        model: anthropic("claude-haiku-4-5-20251001"),
-        messages: [
-            ...history.map((message) => ({
-                role: message.role,
-                content: message.content,
-            })),
-            { role: "user" as const, content: prompt },
-        ],
-    });
 
-    // persist the user prompt and the assistant's reply together, and bump the conversation's
-    // updatedAt so the sidebar reflects the new activity
+    // persist the user's prompt and bump the conversation's activity timestamp before calling
+    // the model, so the prompt is recorded even if the model call fails
     await db.transaction().execute(async (trx) => {
         await trx
             .insertInto("messages")
             .values({ conversationId, role: "user", content: prompt })
             .execute();
 
+        await trx
+            .updateTable("conversations")
+            .set({ updatedAt: new Date() })
+            .where("id", "=", conversationId)
+            .execute();
+    });
+
+    // stream the model's reply, forwarding each chunk via onChunk and accumulating the full text.
+    // streamText doesn't throw from textStream on a failed call, it just ends the stream early,
+    // so capture the error via onError and re-throw it after the loop to surface it as a failure.
+    let streamError: unknown;
+    const messages: ChatMessage[] = [
+        ...history.map((message) => ({
+            role: message.role,
+            content: message.content,
+        })),
+        { role: "user", content: prompt },
+    ];
+    const result = streamText({
+        model: anthropic("claude-haiku-4-5-20251001"),
+        messages,
+        onError: ({ error }) => {
+            streamError = error;
+        },
+    });
+
+    let content = "";
+    for await (const chunk of result.textStream) {
+        content += chunk;
+        await onChunk(chunk);
+    }
+
+    if (streamError) {
+        throw streamError instanceof Error
+            ? streamError
+            : new Error(String(streamError));
+    }
+
+    // persist the assistant's full reply and bump the conversation's activity timestamp again
+    // now that streaming has completed
+    await db.transaction().execute(async (trx) => {
         await trx
             .insertInto("messages")
             .values({ conversationId, role: "assistant", content })

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { useAtom } from "jotai";
 import type { Conversation, User } from "shared";
 import { api } from "../../lib/axios";
+import { selectedConversationIdAtom } from "./atoms";
 
 // Buckets a conversation's updatedAt into a coarse recency group for the sidebar sections.
 function getDateGroup(
@@ -24,9 +26,9 @@ const DATE_GROUPS = ["Today", "Yesterday", "Previous 7 Days", "Older"] as const;
 // new one, and shows their account info at the bottom.
 const Sidebar = ({ user }: { user: User }) => {
     const [conversations, setConversations] = useState<Conversation[]>([]); // this user's conversations, most recently updated first
-    const [selectedConversationId, setSelectedConversationId] = useState<
-        number | null
-    >(null); // conversation currently highlighted as active
+    const [selectedConversationId, setSelectedConversationId] = useAtom(
+        selectedConversationIdAtom,
+    ); // conversation currently highlighted as active, shared with the chat window
 
     // Loads the signed-in user's conversations once, on mount.
     useEffect(() => {

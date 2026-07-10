@@ -27,7 +27,10 @@ export interface Message {
     createdAt: string;
 }
 
-// Response shape for POST /conversations/:conversationId/messages.
-export interface SendMessageResponse {
+// A role/content pair, without the persisted-message fields (id/conversationId/createdAt).
+// Used wherever just the conversational turn itself matters: the model call's message history,
+// and the chat window's in-progress (possibly still-streaming, not-yet-persisted) messages.
+export interface ChatMessage {
+    role: "user" | "assistant";
     content: string;
 }
