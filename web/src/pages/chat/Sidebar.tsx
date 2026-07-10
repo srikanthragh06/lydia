@@ -57,7 +57,7 @@ const Sidebar = ({ user }: { user: User }) => {
             </button>
 
             {/* conversation list, split into recency sections (Today/Yesterday/...) */}
-            <div className="flex-1 overflow-y-auto px-2 space-y-4">
+            <div className="flex-1 overflow-y-auto px-2 space-y-4 scrollbar-thin">
                 {DATE_GROUPS.map((group) => {
                     // conversations belonging to this recency group
                     const groupConversations = conversations.filter(
