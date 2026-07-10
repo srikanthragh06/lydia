@@ -2,10 +2,9 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";
 import type { ChatMessage } from "shared";
 import { db } from "../database/postgres";
-import { getConversationForUser } from "./conversationService";
 
 // Returns all messages in the given conversation, oldest first.
-async function getMessagesForConversation(conversationId: number) {
+export async function getMessagesForConversation(conversationId: number) {
     return db
         .selectFrom("messages")
         .selectAll()
@@ -14,21 +13,15 @@ async function getMessagesForConversation(conversationId: number) {
         .execute();
 }
 
-// Sends a user's prompt in the context of an existing conversation: verifies the conversation
-// belongs to the user, persists the prompt, streams the model's reply chunk by chunk via
-// `onChunk`, then persists the assistant's full reply once streaming completes.
+// Sends a user's prompt in the context of an existing conversation: persists the prompt,
+// streams the model's reply chunk by chunk via `onChunk`, then persists the assistant's full
+// reply once streaming completes. Callers are responsible for verifying the conversation
+// belongs to the requesting user before calling this.
 export async function sendMessage(
-    userId: number,
     conversationId: number,
     prompt: string,
     onChunk: (chunk: string) => Promise<void>,
 ) {
-    // make sure this conversation actually belongs to the requesting user
-    const conversation = await getConversationForUser(conversationId, userId);
-    if (!conversation) {
-        throw new Error("Conversation not found");
-    }
-
     // fetch the existing history before adding the new prompt, so the model sees it as context
     const history = await getMessagesForConversation(conversationId);
 

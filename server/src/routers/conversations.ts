@@ -9,10 +9,15 @@ import {
     getConversationForUser,
     getConversationsForUser,
 } from "../services/conversationService";
-import { sendMessage } from "../services/aiService";
+import { getMessagesForConversation, sendMessage } from "../services/aiService";
 
 // Router for conversation-related endpoints, mounted at /conversations in the main app.
 export const conversationsRouter = new Hono();
+
+// Path param shape shared by every /:conversationId route below.
+const conversationIdParamSchema = z.object({
+    conversationId: z.coerce.number().int().positive(),
+});
 
 // Creates a new, untitled conversation owned by the signed-in user.
 conversationsRouter.post("/", requireAuth, async (c) => {
@@ -28,16 +33,35 @@ conversationsRouter.get("/", requireAuth, async (c) => {
     return c.json({ conversations });
 });
 
+// Lists all messages in the given conversation, oldest first.
+conversationsRouter.get(
+    "/:conversationId/messages",
+    requireAuth,
+    zValidator("param", conversationIdParamSchema),
+    async (c) => {
+        const user = c.get("user");
+        const { conversationId } = c.req.valid("param");
+
+        const conversation = await getConversationForUser(
+            conversationId,
+            user.id,
+        );
+        if (!conversation) {
+            return c.json({ error: "Conversation not found" }, 404);
+        }
+
+        const messages = await getMessagesForConversation(conversationId);
+        return c.json({ messages });
+    },
+);
+
 // Streams the assistant's reply to the user's prompt in the given conversation, as
 // Server-Sent Events: a "chunk" event per piece of text as it arrives, or a single "error"
 // event with a generic message if the model call fails partway through.
 conversationsRouter.post(
     "/:conversationId/messages",
     requireAuth,
-    zValidator(
-        "param",
-        z.object({ conversationId: z.coerce.number().int().positive() }),
-    ),
+    zValidator("param", conversationIdParamSchema),
     zValidator("json", sendMessageSchema),
     async (c) => {
         const user = c.get("user");
@@ -56,14 +80,9 @@ conversationsRouter.post(
 
         return streamSSE(c, async (stream) => {
             try {
-                await sendMessage(
-                    user.id,
-                    conversationId,
-                    prompt,
-                    async (chunk) => {
-                        await stream.writeSSE({ event: "chunk", data: chunk });
-                    },
-                );
+                await sendMessage(conversationId, prompt, async (chunk) => {
+                    await stream.writeSSE({ event: "chunk", data: chunk });
+                });
             } catch (err) {
                 // the stream has already started (200 already sent, so we can't fall back to
                 // an HTTP error status) — log the real error, but only send a generic message
