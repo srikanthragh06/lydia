@@ -4,6 +4,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { sendMessageSchema, updateConversationTitleSchema } from "shared";
 import { requireAuth } from "../middlewares/auth";
+import { rateLimitAi } from "../middlewares/rateLimit";
 import {
     createConversation,
     getConversationForUser,
@@ -86,6 +87,7 @@ conversationsRouter.get(
 conversationsRouter.post(
     "/:conversationId/messages",
     requireAuth,
+    rateLimitAi,
     zValidator("param", conversationIdParamSchema),
     zValidator("json", sendMessageSchema),
     async (c) => {
