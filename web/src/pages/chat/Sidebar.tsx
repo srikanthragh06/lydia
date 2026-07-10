@@ -113,8 +113,7 @@ const Sidebar = ({ user }: { user: User }) => {
                                                 : "hover:bg-white/5 transition"
                                         }`}
                                     >
-                                        {conversation.title ??
-                                            `Conversation #${conversation.id}`}
+                                        {conversation.title ?? `New message`}
                                     </button>
                                 ))}
                             </div>

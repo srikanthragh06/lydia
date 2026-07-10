@@ -13,3 +13,11 @@ export const sendMessageSchema = z.object({
     prompt: z.string().min(1).max(20000),
 });
 export type SendMessageRequest = z.infer<typeof sendMessageSchema>;
+
+// Body shape for PATCH /conversations/:conversationId: the conversation's new title.
+export const updateConversationTitleSchema = z.object({
+    title: z.string().min(1).max(64),
+});
+export type UpdateConversationTitleRequest = z.infer<
+    typeof updateConversationTitleSchema
+>;

@@ -2,12 +2,13 @@ import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { sendMessageSchema } from "shared";
+import { sendMessageSchema, updateConversationTitleSchema } from "shared";
 import { requireAuth } from "../middlewares/auth";
 import {
     createConversation,
     getConversationForUser,
     getConversationsForUser,
+    updateConversationTitle,
 } from "../services/conversationService";
 import { getMessagesForConversation, sendMessage } from "../services/aiService";
 
@@ -32,6 +33,30 @@ conversationsRouter.get("/", requireAuth, async (c) => {
     const conversations = await getConversationsForUser(user.id);
     return c.json({ conversations });
 });
+
+// Renames the given conversation.
+conversationsRouter.patch(
+    "/:conversationId",
+    requireAuth,
+    zValidator("param", conversationIdParamSchema),
+    zValidator("json", updateConversationTitleSchema),
+    async (c) => {
+        const user = c.get("user");
+        const { conversationId } = c.req.valid("param");
+        const { title } = c.req.valid("json");
+
+        const conversation = await getConversationForUser(
+            conversationId,
+            user.id,
+        );
+        if (!conversation) {
+            return c.json({ error: "Conversation not found" }, 404);
+        }
+
+        const updated = await updateConversationTitle(conversationId, title);
+        return c.json({ conversation: updated });
+    },
+);
 
 // Lists all messages in the given conversation, oldest first.
 conversationsRouter.get(

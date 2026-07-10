@@ -30,3 +30,14 @@ export async function getConversationForUser(id: number, userId: number) {
         .where("userId", "=", userId)
         .executeTakeFirst();
 }
+
+// Renames the given conversation. Callers are responsible for verifying the conversation belongs
+// to the requesting user before calling this.
+export async function updateConversationTitle(id: number, title: string) {
+    return db
+        .updateTable("conversations")
+        .set({ title })
+        .where("id", "=", id)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+}
