@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAtomValue } from "jotai";
+import { createParser } from "eventsource-parser";
 import type { ChatMessage } from "shared";
 import { selectedConversationIdAtom } from "./atoms";
 
@@ -56,37 +57,11 @@ const ChatWindow = () => {
                 return;
             }
 
-            const reader = res.body!.getReader();
-            const decoder = new TextDecoder();
-            let buffer = ""; // holds bytes decoded so far that don't yet form a complete SSE frame
-
-            // reads the response body as it streams in, one network chunk at a time
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-
-                // split on the blank line that separates complete SSE frames, keeping any
-                // trailing partial frame in the buffer for the next read
-                const frames = buffer.split("\n\n");
-                buffer = frames.pop() ?? "";
-
-                for (const frame of frames) {
-                    if (!frame.trim()) continue;
-
-                    const lines = frame.split("\n");
-                    const event = lines
-                        .find((line) => line.startsWith("event: "))
-                        ?.slice("event: ".length);
-                    // SSE splits multi-line data across several "data: " lines, so collect
-                    // and rejoin them all rather than just reading the first one
-                    const data = lines
-                        .filter((line) => line.startsWith("data: "))
-                        .map((line) => line.slice("data: ".length))
-                        .join("\n");
-
-                    if (event === "error") {
+            // parses raw SSE bytes into clean { event, data } messages as they arrive, so we
+            // don't have to hand-roll the frame-buffering/line-parsing ourselves
+            const parser = createParser({
+                onEvent(event) {
+                    if (event.event === "error") {
                         // the model call failed after the stream had already started (so the
                         // server couldn't fall back to an HTTP error status) — show a failure
                         // message in place of whatever had streamed in so far
@@ -98,20 +73,30 @@ const ChatWindow = () => {
                             };
                             return next;
                         });
+                        return;
+                    } else if (event.event === "chunk") {
+                        // append this chunk onto the last (assistant) message being streamed
+                        setMessages((prev) => {
+                            const next = [...prev];
+                            next[next.length - 1] = {
+                                ...next[next.length - 1],
+                                content:
+                                    next[next.length - 1].content + event.data,
+                            };
+                            return next;
+                        });
                     }
+                },
+            });
 
-                    if (event !== "chunk") continue;
+            const reader = res.body!.getReader();
+            const decoder = new TextDecoder();
 
-                    // append this chunk onto the last (assistant) message being streamed
-                    setMessages((prev) => {
-                        const next = [...prev];
-                        next[next.length - 1] = {
-                            ...next[next.length - 1],
-                            content: next[next.length - 1].content + data,
-                        };
-                        return next;
-                    });
-                }
+            // reads the response body as it streams in, feeding each piece to the parser
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                parser.feed(decoder.decode(value, { stream: true }));
             }
         } finally {
             setIsStreaming(false);
