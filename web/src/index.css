@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* Thin, subtle scrollbar for dark panels (e.g. the conversation list) instead of the bulky
    OS-default one. Tailwind v4 has no built-in scrollbar utilities, so this is plain CSS. */

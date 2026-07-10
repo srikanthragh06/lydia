@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAtomValue } from "jotai";
 import { createParser } from "eventsource-parser";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { ChatMessage } from "shared";
 import { api } from "../../lib/axios";
 import { selectedConversationIdAtom } from "./atoms";
@@ -155,10 +157,10 @@ const ChatWindow = () => {
                             }`}
                         >
                             <div
-                                className={`px-4 py-2 rounded-2xl whitespace-pre-wrap ${
+                                className={`px-4 py-2 rounded-2xl ${
                                     message.role === "user"
-                                        ? "bg-white/10"
-                                        : "bg-transparent"
+                                        ? "bg-white/10 whitespace-pre-wrap"
+                                        : "bg-transparent prose prose-invert prose-sm max-w-none"
                                 }`}
                             >
                                 {/* the streaming assistant placeholder has no content until the
@@ -171,6 +173,12 @@ const ChatWindow = () => {
                                     <span className="text-white/50 animate-pulse">
                                         Thinking...
                                     </span>
+                                ) : message.role === "assistant" ? (
+                                    // assistant replies are rendered as markdown (the synthesizer
+                                    // is prompted to format with it); user messages stay plain text
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                        {message.content}
+                                    </ReactMarkdown>
                                 ) : (
                                     message.content
                                 )}

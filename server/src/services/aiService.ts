@@ -129,7 +129,9 @@ async function synthesizeResponse(
     best from each. Your output should be a refined output created after analyzing all the other
     answers. 
     NOTE: Never mention in your responses that you evaluated many answers. User
-    should never know all this.`;
+    should never know all this.
+    Format your response in markdown (headings, lists, code blocks, bold/italic, etc.) where it
+    improves readability.`;
 
     // combine the successful answers into one block to hand to the synthesizer alongside the
     // system prompt above
