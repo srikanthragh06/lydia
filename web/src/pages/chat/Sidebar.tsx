@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAtom } from "jotai";
 import type { Conversation, User } from "shared";
 import { api } from "../../lib/axios";
@@ -30,6 +30,11 @@ const Sidebar = ({ user }: { user: User }) => {
     const [selectedConversationId, setSelectedConversationId] = useAtom(
         selectedConversationIdAtom,
     ); // conversation currently highlighted as active, shared with the chat window
+    const [editingConversationId, setEditingConversationId] = useState<
+        number | null
+    >(null); // conversation currently being renamed inline, or null if none
+    const [editingTitle, setEditingTitle] = useState(""); // current value of the inline rename input
+    const cancelingRenameRef = useRef(false); // true while Escape is discarding the rename, to suppress the blur it triggers from also submitting
 
     // Loads the signed-in user's conversations once, on mount.
     useEffect(() => {
@@ -50,6 +55,24 @@ const Sidebar = ({ user }: { user: User }) => {
         const conversation: Conversation = res.data.conversation;
         setConversations((prev) => [conversation, ...prev]);
         setSelectedConversationId(conversation.id);
+    };
+
+    // Saves the in-progress inline rename, or does nothing if the trimmed title is empty (leaves
+    // the conversation's title unchanged rather than allowing an empty rename).
+    const handleRenameSubmit = async (conversationId: number) => {
+        const title = editingTitle.trim();
+        setEditingConversationId(null);
+        if (!title) return;
+
+        const res = await api.patch(`/conversations/${conversationId}`, {
+            title,
+        });
+        const updated: Conversation = res.data.conversation;
+        setConversations((prev) =>
+            prev.map((conversation) =>
+                conversation.id === conversationId ? updated : conversation,
+            ),
+        );
     };
 
     // Clears the auth cookie and sends the user back to the sign-in page.
@@ -98,24 +121,80 @@ const Sidebar = ({ user }: { user: User }) => {
                                     {group}
                                 </div>
                                 {/* one row per conversation in this section */}
-                                {groupConversations.map((conversation) => (
-                                    <button
-                                        key={conversation.id}
-                                        onClick={() =>
-                                            setSelectedConversationId(
-                                                conversation.id,
-                                            )
-                                        }
-                                        className={`w-full text-left px-2 py-2 rounded-lg truncate transition cursor-pointer ${
-                                            selectedConversationId ===
-                                            conversation.id
-                                                ? "bg-white/10"
-                                                : "hover:bg-white/5 transition"
-                                        }`}
-                                    >
-                                        {conversation.title ?? `New message`}
-                                    </button>
-                                ))}
+                                {groupConversations.map((conversation) =>
+                                    editingConversationId ===
+                                    conversation.id ? (
+                                        // inline rename input, shown instead of the row while
+                                        // this conversation is being renamed
+                                        <input
+                                            key={conversation.id}
+                                            autoFocus
+                                            value={editingTitle}
+                                            maxLength={64}
+                                            onChange={(e) =>
+                                                setEditingTitle(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            onBlur={() => {
+                                                if (
+                                                    cancelingRenameRef.current
+                                                ) {
+                                                    cancelingRenameRef.current =
+                                                        false;
+                                                    return;
+                                                }
+                                                handleRenameSubmit(
+                                                    conversation.id,
+                                                );
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    e.preventDefault();
+                                                    // let onBlur do the actual submit, since
+                                                    // unmounting this focused input would blur
+                                                    // it a second time and double-submit
+                                                    e.currentTarget.blur();
+                                                } else if (
+                                                    e.key === "Escape"
+                                                ) {
+                                                    cancelingRenameRef.current =
+                                                        true;
+                                                    setEditingConversationId(
+                                                        null,
+                                                    );
+                                                }
+                                            }}
+                                            className="w-full px-2 py-2 rounded-lg bg-white/10 outline-none"
+                                        />
+                                    ) : (
+                                        <button
+                                            key={conversation.id}
+                                            onClick={() =>
+                                                setSelectedConversationId(
+                                                    conversation.id,
+                                                )
+                                            }
+                                            onDoubleClick={() => {
+                                                setEditingConversationId(
+                                                    conversation.id,
+                                                );
+                                                setEditingTitle(
+                                                    conversation.title ?? "",
+                                                );
+                                            }}
+                                            className={`w-full text-left px-2 py-2 rounded-lg truncate transition cursor-pointer ${
+                                                selectedConversationId ===
+                                                conversation.id
+                                                    ? "bg-white/10"
+                                                    : "hover:bg-white/5 transition"
+                                            }`}
+                                        >
+                                            {conversation.title ??
+                                                `New message`}
+                                        </button>
+                                    ),
+                                )}
                             </div>
                         );
                     })
