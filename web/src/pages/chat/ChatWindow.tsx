@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAtomValue } from "jotai";
 import { createParser } from "eventsource-parser";
 import type { ChatMessage } from "shared";
+import { api } from "../../lib/axios";
 import { selectedConversationIdAtom } from "./atoms";
 
 // Main chat panel: shows the selected conversation's messages and lets the user send a new
@@ -9,13 +10,21 @@ import { selectedConversationIdAtom } from "./atoms";
 const ChatWindow = () => {
     const conversationId = useAtomValue(selectedConversationIdAtom); // conversation currently open, set by the sidebar
 
-    const [messages, setMessages] = useState<ChatMessage[]>([]); // messages shown so far this session (no history endpoint yet, so this resets on conversation change/reload)
+    const [messages, setMessages] = useState<ChatMessage[]>([]); // messages shown for the selected conversation
     const [prompt, setPrompt] = useState(""); // current textarea input
     const [isStreaming, setIsStreaming] = useState(false); // true while the assistant's reply is still streaming in
 
-    // Clears the visible messages whenever the selected conversation changes.
+    // Loads the selected conversation's message history whenever it changes, clearing the
+    // previous conversation's messages immediately so they don't flash while the new ones load.
     useEffect(() => {
         setMessages([]);
+        if (!conversationId) return;
+
+        const loadMessages = async () => {
+            const res = await api.get(`/conversations/${conversationId}/messages`);
+            setMessages(res.data.messages);
+        };
+        loadMessages();
     }, [conversationId]);
 
     // Sends the current prompt to the selected conversation and streams the assistant's reply
