@@ -19,12 +19,20 @@ const Page = ({
     const isReady =
         authStatus === "noAuthRequired" || authStatus === "success";
 
+    if (!isReady) {
+        return (
+            <div className="w-full h-full text-white flex items-center justify-center">
+                Authenticating...
+            </div>
+        );
+    }
+
     return (
         <div
             className={`w-full h-full text-white
         flex flex-col ${className}`}
         >
-            {isReady ? children : "Authenticating..."}
+            {children}
         </div>
     );
 };
