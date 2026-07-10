@@ -183,7 +183,7 @@ export async function sendMessage(
             .executeTakeFirstOrThrow();
 
         await trx
-            .insertInto("modelResponses")
+            .insertInto("model_responses")
             .values(
                 modelResponses.map((response) => ({
                     messageId: assistantMessage.id,

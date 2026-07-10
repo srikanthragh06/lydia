@@ -4,7 +4,7 @@ export interface Database {
     users: UsersTable;
     conversations: ConversationsTable;
     messages: MessagesTable;
-    modelResponses: ModelResponsesTable;
+    model_responses: ModelResponsesTable;
 }
 
 export interface UsersTable {
