@@ -20,3 +20,13 @@ export async function getConversationsForUser(userId: number) {
         .orderBy("updatedAt", "desc")
         .execute();
 }
+
+// Returns the conversation with the given id if it's owned by the given user, otherwise undefined.
+export async function getConversationForUser(id: number, userId: number) {
+    return db
+        .selectFrom("conversations")
+        .selectAll()
+        .where("id", "=", id)
+        .where("userId", "=", userId)
+        .executeTakeFirst();
+}

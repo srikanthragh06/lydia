@@ -6,7 +6,8 @@ export const googleSignInSchema = z.object({
 });
 export type GoogleSignInRequest = z.infer<typeof googleSignInSchema>;
 
-// Body shape for POST /message: the user's prompt to send to the model.
+// Body shape for POST /conversations/:conversationId/messages: the user's prompt to send to
+// the model.
 export const sendMessageSchema = z.object({
     prompt: z.string().min(1).max(10000),
 });

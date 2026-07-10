@@ -17,7 +17,17 @@ export interface Conversation {
     updatedAt: string;
 }
 
-// Response shape for POST /message.
+// A message, as returned by the API. Timestamps are ISO strings since Date objects serialize
+// to strings over JSON.
+export interface Message {
+    id: number;
+    conversationId: number;
+    role: "user" | "assistant";
+    content: string;
+    createdAt: string;
+}
+
+// Response shape for POST /conversations/:conversationId/messages.
 export interface SendMessageResponse {
     content: string;
 }
