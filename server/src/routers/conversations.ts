@@ -6,6 +6,7 @@ import { sendMessageSchema } from "shared";
 import { requireAuth } from "../middlewares/auth";
 import {
     createConversation,
+    getConversationForUser,
     getConversationsForUser,
 } from "../services/conversationService";
 import { sendMessage } from "../services/aiService";
@@ -42,6 +43,16 @@ conversationsRouter.post(
         const user = c.get("user");
         const { conversationId } = c.req.valid("param");
         const { prompt } = c.req.valid("json");
+
+        // check ownership before starting the SSE stream — once streamSSE sends its 200,
+        // there's no falling back to a proper HTTP error status
+        const conversation = await getConversationForUser(
+            conversationId,
+            user.id,
+        );
+        if (!conversation) {
+            return c.json({ error: "Conversation not found" }, 404);
+        }
 
         return streamSSE(c, async (stream) => {
             try {
