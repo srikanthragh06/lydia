@@ -45,6 +45,12 @@ const Sidebar = ({ user }: { user: User }) => {
         setSelectedConversationId(conversation.id);
     };
 
+    // Clears the auth cookie and sends the user back to the sign-in page.
+    const handleLogout = async () => {
+        await api.post("/auth/logout");
+        window.location.assign("/auth");
+    };
+
     return (
         <div className="w-64 h-full flex flex-col border-r border-white/10 text-white">
             {/* starts a new, untitled conversation and selects it */}
@@ -108,12 +114,20 @@ const Sidebar = ({ user }: { user: User }) => {
                         className="w-8 h-8 rounded-full"
                     />
                 )}
-                <div className="flex flex-col overflow-hidden">
+                <div className="flex flex-col overflow-hidden flex-1">
                     <span className="text-sm truncate">{user.name}</span>
                     <span className="text-xs text-white/50 truncate">
                         {user.emailId}
                     </span>
                 </div>
+
+                {/* signs the user out and returns them to the sign-in page */}
+                <button
+                    onClick={handleLogout}
+                    className="text-xs text-white/50 hover:text-white hover:bg-white/10 rounded-lg px-2 py-1 transition cursor-pointer"
+                >
+                    Log out
+                </button>
             </div>
         </div>
     );
