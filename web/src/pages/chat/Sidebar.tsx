@@ -26,6 +26,7 @@ const DATE_GROUPS = ["Today", "Yesterday", "Previous 7 Days", "Older"] as const;
 // new one, and shows their account info at the bottom.
 const Sidebar = ({ user }: { user: User }) => {
     const [conversations, setConversations] = useState<Conversation[]>([]); // this user's conversations, most recently updated first
+    const [isLoadingConversations, setIsLoadingConversations] = useState(true); // true until the initial conversation list has loaded
     const [selectedConversationId, setSelectedConversationId] = useAtom(
         selectedConversationIdAtom,
     ); // conversation currently highlighted as active, shared with the chat window
@@ -33,8 +34,12 @@ const Sidebar = ({ user }: { user: User }) => {
     // Loads the signed-in user's conversations once, on mount.
     useEffect(() => {
         const loadConversations = async () => {
-            const res = await api.get("/conversations");
-            setConversations(res.data.conversations);
+            try {
+                const res = await api.get("/conversations");
+                setConversations(res.data.conversations);
+            } finally {
+                setIsLoadingConversations(false);
+            }
         };
         loadConversations();
     }, []);
@@ -66,44 +71,56 @@ const Sidebar = ({ user }: { user: User }) => {
 
             {/* conversation list, split into recency sections (Today/Yesterday/...) */}
             <div className="flex-1 overflow-y-auto px-2 space-y-4 scrollbar-thin">
-                {DATE_GROUPS.map((group) => {
-                    // conversations belonging to this recency group
-                    const groupConversations = conversations.filter(
-                        (conversation) =>
-                            getDateGroup(conversation.updatedAt) === group,
-                    );
-                    // skip rendering empty sections entirely
-                    if (groupConversations.length === 0) return null;
+                {isLoadingConversations ? (
+                    // skeleton rows shown while the initial list request is in flight
+                    <div className="space-y-2 px-2">
+                        {[...Array(6)].map((_, index) => (
+                            <div
+                                key={index}
+                                className="h-8 rounded-lg bg-white/5 animate-pulse"
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    DATE_GROUPS.map((group) => {
+                        // conversations belonging to this recency group
+                        const groupConversations = conversations.filter(
+                            (conversation) =>
+                                getDateGroup(conversation.updatedAt) === group,
+                        );
+                        // skip rendering empty sections entirely
+                        if (groupConversations.length === 0) return null;
 
-                    return (
-                        <div key={group}>
-                            {/* section header, e.g. "Today" */}
-                            <div className="px-2 text-xs text-white/50 mb-1">
-                                {group}
+                        return (
+                            <div key={group}>
+                                {/* section header, e.g. "Today" */}
+                                <div className="px-2 text-xs text-white/50 mb-1">
+                                    {group}
+                                </div>
+                                {/* one row per conversation in this section */}
+                                {groupConversations.map((conversation) => (
+                                    <button
+                                        key={conversation.id}
+                                        onClick={() =>
+                                            setSelectedConversationId(
+                                                conversation.id,
+                                            )
+                                        }
+                                        className={`w-full text-left px-2 py-2 rounded-lg truncate transition cursor-pointer ${
+                                            selectedConversationId ===
+                                            conversation.id
+                                                ? "bg-white/10"
+                                                : "hover:bg-white/5 transition"
+                                        }`}
+                                    >
+                                        {conversation.title ??
+                                            `Conversation #${conversation.id}`}
+                                    </button>
+                                ))}
                             </div>
-                            {/* one row per conversation in this section */}
-                            {groupConversations.map((conversation) => (
-                                <button
-                                    key={conversation.id}
-                                    onClick={() =>
-                                        setSelectedConversationId(
-                                            conversation.id,
-                                        )
-                                    }
-                                    className={`w-full text-left px-2 py-2 rounded-lg truncate transition cursor-pointer ${
-                                        selectedConversationId ===
-                                        conversation.id
-                                            ? "bg-white/10"
-                                            : "hover:bg-white/5 transition"
-                                    }`}
-                                >
-                                    {conversation.title ??
-                                        `Conversation #${conversation.id}`}
-                                </button>
-                            ))}
-                        </div>
-                    );
-                })}
+                        );
+                    })
+                )}
             </div>
 
             {/* signed-in user's account info, pinned to the bottom */}

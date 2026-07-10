@@ -11,6 +11,7 @@ const ChatWindow = () => {
     const conversationId = useAtomValue(selectedConversationIdAtom); // conversation currently open, set by the sidebar
 
     const [messages, setMessages] = useState<ChatMessage[]>([]); // messages shown for the selected conversation
+    const [isLoadingMessages, setIsLoadingMessages] = useState(false); // true while the selected conversation's history is loading
     const [prompt, setPrompt] = useState(""); // current textarea input
     const [isStreaming, setIsStreaming] = useState(false); // true while the assistant's reply is still streaming in
 
@@ -20,9 +21,16 @@ const ChatWindow = () => {
         setMessages([]);
         if (!conversationId) return;
 
+        setIsLoadingMessages(true);
         const loadMessages = async () => {
-            const res = await api.get(`/conversations/${conversationId}/messages`);
-            setMessages(res.data.messages);
+            try {
+                const res = await api.get(
+                    `/conversations/${conversationId}/messages`,
+                );
+                setMessages(res.data.messages);
+            } finally {
+                setIsLoadingMessages(false);
+            }
         };
         loadMessages();
     }, [conversationId]);
@@ -125,24 +133,39 @@ const ChatWindow = () => {
         <div className="flex-1 flex flex-col h-full text-white">
             {/* message list */}
             <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-4">
-                {messages.map((message, index) => (
-                    <div
-                        key={index}
-                        className={`max-w-2xl ${
-                            message.role === "user" ? "ml-auto" : "mr-auto"
-                        }`}
-                    >
+                {isLoadingMessages ? (
+                    // skeleton bubbles shown while this conversation's history is loading
+                    <>
+                        <div className="max-w-2xl ml-auto">
+                            <div className="h-10 w-40 rounded-2xl bg-white/10 animate-pulse" />
+                        </div>
+                        <div className="max-w-2xl mr-auto">
+                            <div className="h-16 w-64 rounded-2xl bg-white/5 animate-pulse" />
+                        </div>
+                        <div className="max-w-2xl ml-auto">
+                            <div className="h-10 w-32 rounded-2xl bg-white/10 animate-pulse" />
+                        </div>
+                    </>
+                ) : (
+                    messages.map((message, index) => (
                         <div
-                            className={`px-4 py-2 rounded-2xl whitespace-pre-wrap ${
-                                message.role === "user"
-                                    ? "bg-white/10"
-                                    : "bg-transparent"
+                            key={index}
+                            className={`max-w-2xl ${
+                                message.role === "user" ? "ml-auto" : "mr-auto"
                             }`}
                         >
-                            {message.content}
+                            <div
+                                className={`px-4 py-2 rounded-2xl whitespace-pre-wrap ${
+                                    message.role === "user"
+                                        ? "bg-white/10"
+                                        : "bg-transparent"
+                                }`}
+                            >
+                                {message.content}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
 
             {/* prompt input */}
