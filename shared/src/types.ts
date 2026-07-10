@@ -34,3 +34,10 @@ export interface ChatMessage {
     role: "user" | "assistant";
     content: string;
 }
+
+// One fan-out model's raw answer to a prompt, or the error if that model's call failed.
+export interface ModelResponse {
+    model: string;
+    content: string | null;
+    error: string | null;
+}

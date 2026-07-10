@@ -7,8 +7,9 @@ export const googleSignInSchema = z.object({
 export type GoogleSignInRequest = z.infer<typeof googleSignInSchema>;
 
 // Body shape for POST /conversations/:conversationId/messages: the user's prompt to send to
-// the model.
+// the model. Capped at ~20,000 characters, a rough estimate (~4 chars/token) for a 5,000 token
+// budget, matching the assistant's own max output tokens.
 export const sendMessageSchema = z.object({
-    prompt: z.string().min(1).max(10000),
+    prompt: z.string().min(1).max(20000),
 });
 export type SendMessageRequest = z.infer<typeof sendMessageSchema>;
