@@ -4,6 +4,7 @@ export interface Database {
     users: UsersTable;
     conversations: ConversationsTable;
     messages: MessagesTable;
+    modelResponses: ModelResponsesTable;
 }
 
 export interface UsersTable {
@@ -27,5 +28,14 @@ export interface MessagesTable {
     conversationId: number;
     role: "user" | "assistant";
     content: string;
+    createdAt: Generated<Date>;
+}
+
+export interface ModelResponsesTable {
+    id: Generated<number>;
+    messageId: number;
+    model: string;
+    content: string | null;
+    error: string | null;
     createdAt: Generated<Date>;
 }
