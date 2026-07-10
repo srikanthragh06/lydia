@@ -161,7 +161,19 @@ const ChatWindow = () => {
                                         : "bg-transparent"
                                 }`}
                             >
-                                {message.content}
+                                {/* the streaming assistant placeholder has no content until the
+                                first chunk arrives (fan-out + synthesis takes a moment to start) —
+                                show a "Thinking..." indicator in its place until then */}
+                                {isStreaming &&
+                                index === messages.length - 1 &&
+                                message.role === "assistant" &&
+                                message.content === "" ? (
+                                    <span className="text-white/50 animate-pulse">
+                                        Thinking...
+                                    </span>
+                                ) : (
+                                    message.content
+                                )}
                             </div>
                         </div>
                     ))
